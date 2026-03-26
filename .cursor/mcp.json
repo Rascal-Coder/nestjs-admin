@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "Prisma-Local": {
+      "command": "npx",
+      "args": ["-y", "prisma@7", "mcp"]
+    },
+    "Prisma-Remote": {
+      "url": "https://mcp.prisma.io/mcp"
+    }
+  }
+}

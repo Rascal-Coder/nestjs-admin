@@ -1,0 +1,45 @@
+---
+description: Prisma ORM v7 与本项目（NestJS + MySQL）的 schema、Client、CLI 约定
+globs: prisma/**,prisma.config.ts,src/prisma/**/*.ts
+alwaysApply: false
+---
+
+# Prisma ORM v7（nestjs-admin）
+
+全局架构与用户可见文案约定见仓库根目录 `AGENTS.md`。本规则仅约束 **Prisma v7** 相关实现细节。
+
+## 版本与运行环境
+
+- 使用 **`prisma@7`** 与 **`@prisma/client@7`** 保持同步；Node 建议 **≥ 20.19**（官方 v7 前置条件）。
+- Prisma v7 以 **ESM** 为主；若项目为 CommonJS，以实际 `package.json` / `tsconfig` 为准再生成代码，避免混用导致无法加载 Client。
+
+## 配置入口（`prisma.config.ts`）
+
+- 在项目根（与 `package.json` 同级）维护 **`prisma.config.ts`**，用 `defineConfig` 声明 schema 路径、migrations、seed、以及 **datasource `url`**（`env("DATABASE_URL")` 等）。CLI 不再依赖在 schema 里写连接串（schema 中 `url` / `directUrl` / `shadowDatabaseUrl` 已弃用，应迁到 Prisma Config）。
+- v7 默认 **不自动加载 `.env`**：在 `prisma.config.ts` 顶部使用 `import "dotenv/config"`（或团队统一的 env 加载方式）。Source: [Upgrade to Prisma ORM 7](https://www.prisma.io/docs/guides/upgrade-prisma-orm/v7)
+
+## `schema.prisma` 与生成物
+
+- **generator** 使用 `provider = "prisma-client"`（替代已计划移除的 `prisma-client-js`），且 **`output` 必填**，Client 不再默认生成到 `node_modules`。
+- 生成后从 **`output` 指向的路径** 引用 `PrismaClient`（例如 `src/generated/prisma/client`），不要写死为 `@prisma/client`，除非项目明确重新导出。
+- 本仓库数据源为 **MySQL**：`datasource db { provider = "mysql" ... }` 与 `DATABASE_URL` 保持一致。
+
+## Driver Adapter（v7 必需）
+
+- v7 通过 **driver adapter** 连接数据库；MySQL 请使用官方 **`@prisma/adapter-mariadb`**（与 `mysql` provider 配套；npm 上无 `@prisma/adapter-mysql2`），在 NestJS 中先 `await new PrismaMariaDb(DATABASE_URL).connect()` 再 `new PrismaClient({ adapter })`。Source: [MySQL database connector](https://www.prisma.io/docs/orm/prisma-client/setup-and-configuration/databases-connections/mysql)
+- 若使用 **Prisma Accelerate**，按官方说明使用扩展与 URL，**不要把** `prisma://` / `prisma+postgres://` 交给 TCP 类 adapter。Source: [Upgrade to Prisma ORM 7](https://www.prisma.io/docs/guides/upgrade-prisma-orm/v7)
+
+## CLI 与工作流（与 v6 差异）
+
+- **`migrate dev` / `db push` 不再自动执行 `generate`**：改 schema 后需显式运行 **`prisma generate`**。
+- **migrate 不再自动跑 seed**：需要种子数据时显式执行 **`prisma db seed`**。
+- **`$use` middleware 已移除**：请用 **Client Extensions** 替代。
+
+## 安全与 AI 助手
+
+- 不在 API 层暴露原始 Client；入参校验在边界完成（与 `AGENTS.md` 一致）。
+- 对 **`prisma migrate reset --force`** 等破坏性操作，CLI 在 AI 环境中可能拦截；若用户明确同意，需按其文档设置 **`PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION`**（值为用户同意原文）。Source: [Prisma MCP Server](https://www.prisma.io/docs/ai/tools/mcp-server)
+
+## MCP
+
+- 本项目在 `.cursor/mcp.json` 中已配置 **Prisma-Local**（`npx -y prisma@7 mcp`）与 **Prisma-Remote**（`https://mcp.prisma.io/mcp`）。本地工具依赖本机 Node/npx；远程工具用于 Prisma Postgres 云资源管理。
