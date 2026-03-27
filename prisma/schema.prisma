@@ -12,14 +12,30 @@ enum UserStatus {
   DISABLED
 }
 
+/// 角色启用状态（与 RuoYi「角色状态」一致）
+enum RoleStatus {
+  ACTIVE
+  DISABLED
+}
+
+/// 菜单类型：目录 / 菜单 / 按钮（按钮可单独绑定权限码）
+enum MenuType {
+  DIRECTORY
+  MENU
+  BUTTON
+}
+
 /// 业务用户
 model User {
   id           String      @id @default(cuid())
   email        String      @unique
   passwordHash String      @map("password_hash")
   name         String?
-  /// 是否管理员（业务标记，与 RBAC 角色可并存）
-  isAdmin      Boolean     @default(false) @map("is_admin")
+  /// 管理员备注（可选）
+  remark       String?     @map("remark") @db.Text
+  /// 主展示角色（与 user_roles 一致，种子/运维维护；业务权限以 Casbin 为准）
+  roleCode     String?     @map("role_code")
+  primaryRole  Role?       @relation("UserPrimaryRole", fields: [roleCode], references: [code], onDelete: SetNull)
   status       UserStatus  @default(ACTIVE)
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -32,10 +48,14 @@ model Role {
   id          String             @id @default(cuid())
   code        String             @unique
   name        String
+  status      RoleStatus         @default(ACTIVE)
+  remark      String?            @map("remark") @db.Text
   createdAt   DateTime           @default(now()) @map("created_at")
   updatedAt   DateTime           @updatedAt @map("updated_at")
   users       UserRole[]
   permissions RolePermission[]
+  menus       RoleMenu[]
+  primaryUsers User[]            @relation("UserPrimaryRole")
 
   @@map("roles")
 }
@@ -47,8 +67,43 @@ model Permission {
   createdAt DateTime           @default(now()) @map("created_at")
   updatedAt DateTime           @updatedAt @map("updated_at")
   roles     RolePermission[]
+  menus     Menu[]
 
   @@map("permissions")
+}
+
+/// 菜单树（前端勾选「菜单权限」）；叶子/按钮可挂 permissionId，保存角色时据此同步 role_permissions
+model Menu {
+  id           String      @id @default(cuid())
+  parentId     String?     @map("parent_id")
+  parent       Menu?       @relation("MenuTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children     Menu[]      @relation("MenuTree")
+  name         String
+  path         String?
+  /// 激活路径（高亮当前菜单，可与路由地址不同，如子页仍选中父级菜单）
+  activePath   String?     @map("active_path") @db.VarChar(200)
+  component    String?
+  permissionId String?     @map("permission_id")
+  permission   Permission? @relation(fields: [permissionId], references: [id], onDelete: SetNull)
+  sortOrder    Int         @default(0) @map("sort_order")
+  menuType     MenuType    @default(MENU) @map("menu_type")
+  visible      Boolean     @default(true)
+  icon         String?
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  roles        RoleMenu[]
+
+  @@map("menus")
+}
+
+model RoleMenu {
+  roleId String @map("role_id")
+  menuId String @map("menu_id")
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  menu   Menu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, menuId])
+  @@map("role_menus")
 }
 
 model UserRole {

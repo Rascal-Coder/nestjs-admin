@@ -11,6 +11,7 @@ import {
   CasbinPermissionMeta,
   PERMISSION_KEY,
 } from "@/common/decorators/require-permission.decorator";
+import { ROLE_CODE_SUPER_ADMIN } from "@/common/constants/role-codes";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import type { JwtPayload } from "@/modules/auth/interfaces/jwt-payload.interface";
 import { CasbinService } from "./casbin.service";
@@ -40,6 +41,11 @@ export class CasbinGuard implements CanActivate {
         "未登录",
         HttpStatus.UNAUTHORIZED,
       );
+    }
+
+    // 超管：与种子约定一致，避免仅因 casbin_rule 与 user_roles 短暂不一致导致 403
+    if (user.roleCode === ROLE_CODE_SUPER_ADMIN) {
+      return true;
     }
 
     const allowed = await this.casbin.enforce(

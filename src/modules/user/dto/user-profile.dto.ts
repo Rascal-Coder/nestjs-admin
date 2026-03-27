@@ -12,10 +12,20 @@ export class UserProfileDto {
   @ApiProperty({ nullable: true })
   name!: string | null;
 
-  @ApiProperty({ description: "是否管理员（业务标记）" })
-  isAdmin!: boolean;
+  @ApiProperty({ nullable: true, description: "备注" })
+  remark!: string | null;
 
-  @ApiProperty({ enum: UserStatus, description: "ACTIVE 正常；DISABLED 停用（不可登录）" })
+  @ApiProperty({
+    nullable: true,
+    description:
+      "主角色 code（如 super_admin），与 user_roles 一致；业务权限以 Casbin 为准",
+  })
+  roleCode!: string | null;
+
+  @ApiProperty({
+    enum: UserStatus,
+    description: "ACTIVE 正常；DISABLED 停用（不可登录）",
+  })
   status!: UserStatus;
 
   @ApiProperty({ description: "ISO 8601 时间字符串" })

@@ -15,3 +15,20 @@ export const UserStatus = {
 } as const
 
 export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus]
+
+
+export const RoleStatus = {
+  ACTIVE: 'ACTIVE',
+  DISABLED: 'DISABLED'
+} as const
+
+export type RoleStatus = (typeof RoleStatus)[keyof typeof RoleStatus]
+
+
+export const MenuType = {
+  DIRECTORY: 'DIRECTORY',
+  MENU: 'MENU',
+  BUTTON: 'BUTTON'
+} as const
+
+export type MenuType = (typeof MenuType)[keyof typeof MenuType]

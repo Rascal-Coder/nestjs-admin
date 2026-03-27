@@ -12,8 +12,14 @@ export class UserSessionDto {
   @ApiProperty({ nullable: true, required: false })
   name!: string | null;
 
-  @ApiProperty({ description: "是否管理员（业务标记）" })
-  isAdmin!: boolean;
+  @ApiProperty({ nullable: true, required: false, description: "备注" })
+  remark!: string | null;
+
+  @ApiProperty({
+    nullable: true,
+    description: "主角色 code（如 super_admin）",
+  })
+  roleCode!: string | null;
 
   @ApiProperty({ enum: UserStatus })
   status!: UserStatus;

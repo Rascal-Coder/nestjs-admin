@@ -11,6 +11,8 @@ import { RedisModule } from "./redis/redis.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { UserModule } from "./modules/user/user.module";
 import { RbacModule } from "./modules/rbac/rbac.module";
+import { MenuModule } from "./modules/menu/menu.module";
+import { RoleModule } from "./modules/role/role.module";
 import { StorageModule } from "./modules/storage/storage.module";
 import { AppController } from "./app.controller";
 import { JwtAuthGuard } from "./modules/auth/guards/jwt-auth.guard";
@@ -27,6 +29,8 @@ import { CasbinGuard } from "./modules/rbac/casbin.guard";
     RedisModule,
     AuthModule,
     UserModule,
+    RoleModule,
+    MenuModule,
     RbacModule,
     StorageModule,
   ],

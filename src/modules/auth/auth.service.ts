@@ -25,7 +25,7 @@ export class AuthService {
       );
     }
     const user = await this.users.create(email, password, name);
-    const tokens = await this.signTokens(user.id, user.email);
+    const tokens = await this.signTokens(user.id, user.email, user.roleCode);
     return { user, ...tokens };
   }
 
@@ -53,21 +53,26 @@ export class AuthService {
         HttpStatus.FORBIDDEN,
       );
     }
-    const tokens = await this.signTokens(user.id, user.email);
+    const tokens = await this.signTokens(user.id, user.email, user.roleCode);
     return {
       user: {
         id: user.id,
         email: user.email,
         name: user.name,
-        isAdmin: user.isAdmin,
+        remark: user.remark,
+        roleCode: user.roleCode,
         status: user.status,
       },
       ...tokens,
     };
   }
 
-  private async signTokens(userId: string, email: string) {
-    const payload: JwtPayload = { sub: userId, email };
+  private async signTokens(
+    userId: string,
+    email: string,
+    roleCode?: string | null,
+  ) {
+    const payload: JwtPayload = { sub: userId, email, roleCode };
     const accessToken = await this.jwt.signAsync(payload);
     return { accessToken };
   }

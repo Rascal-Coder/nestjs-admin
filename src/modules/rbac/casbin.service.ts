@@ -4,6 +4,18 @@ import { newEnforcer, Enforcer } from "casbin";
 import { PrismaService } from "@/prisma/prisma.service";
 import { PrismaCasbinAdapter } from "@/casbin/prisma-casbin-adapter";
 
+/** 将 permission.code（如 user:read）拆为 Casbin 的 obj、act */
+export function splitPermissionCode(code: string): {
+  resource: string;
+  action: string;
+} {
+  const i = code.indexOf(":");
+  if (i <= 0 || i === code.length - 1) {
+    throw new Error(`无效的权限码: ${code}`);
+  }
+  return { resource: code.slice(0, i), action: code.slice(i + 1) };
+}
+
 /** Casbin Enforcer 单例；策略变更后可调用 reloadPolicy（见 AGENTS.md） */
 @Injectable()
 export class CasbinService implements OnModuleInit {
@@ -19,29 +31,55 @@ export class CasbinService implements OnModuleInit {
     const modelPath = this.config.getOrThrow<string>("casbin.modelPath");
     const adapter = new PrismaCasbinAdapter(this.prisma);
     this.enforcer = await newEnforcer(modelPath, adapter);
-    await this.enforcer.loadPolicy();
-    await this.syncGroupingFromUserRoles();
-    this.logger.log("Casbin 策略已从数据库加载");
+    await this.rebuildCasbinRulesFromPrisma();
+    this.logger.log("Casbin 策略已从数据库加载（p/g 已与 Prisma 对齐）");
   }
 
   /**
-   * 将 Prisma user_roles 同步为 Casbin 的 g（用户→角色）。
-   * 仅依赖 casbin_rule 时，若未跑 seed 或 g 与业务库不一致，会出现「管理员登录仍 403」。
+   * 用 Prisma 中的 user_roles、role_permissions 重写 casbin_rule 的 p 与 g，
+   * 再 loadPolicy，避免仅「追加 g」导致 DB 与内存陈旧不一致。
    */
-  private async syncGroupingFromUserRoles(): Promise<void> {
-    const rows = await this.prisma.userRole.findMany({
-      include: { role: true },
+  async rebuildCasbinRulesFromPrisma(): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.casbinRule.deleteMany({
+        where: { ptype: { in: ["p", "g"] } },
+      });
+      const userRoles = await tx.userRole.findMany({
+        include: { role: true },
+      });
+      const gRows = userRoles.map((ur) => ({
+        ptype: "g" as const,
+        v0: ur.userId,
+        v1: ur.role.code,
+      }));
+      const roles = await tx.role.findMany({
+        include: { permissions: { include: { permission: true } } },
+      });
+      const pRows: {
+        ptype: "p";
+        v0: string;
+        v1: string;
+        v2: string;
+      }[] = [];
+      for (const role of roles) {
+        for (const rp of role.permissions) {
+          const { resource, action } = splitPermissionCode(rp.permission.code);
+          pRows.push({
+            ptype: "p",
+            v0: role.code,
+            v1: resource,
+            v2: action,
+          });
+        }
+      }
+      if (gRows.length > 0) {
+        await tx.casbinRule.createMany({ data: gRows });
+      }
+      if (pRows.length > 0) {
+        await tx.casbinRule.createMany({ data: pRows });
+      }
     });
-    let added = 0;
-    for (const ur of rows) {
-      const ok = await this.enforcer.addGroupingPolicy(ur.userId, ur.role.code);
-      if (ok) added += 1;
-    }
-    if (added > 0) {
-      this.logger.log(
-        `Casbin 已从 user_roles 补充 ${added} 条 g 策略（与 casbin_rule 合并）`,
-      );
-    }
+    await this.enforcer.loadPolicy();
   }
 
   async enforce(
@@ -52,10 +90,9 @@ export class CasbinService implements OnModuleInit {
     return this.enforcer.enforce(userId, resource, action);
   }
 
-  /** 权限或角色数据变更后刷新内存策略 */
+  /** 权限或角色数据变更后从 Prisma 重建 casbin_rule 并刷新内存 */
   async reloadPolicy(): Promise<void> {
-    await this.enforcer.loadPolicy();
-    await this.syncGroupingFromUserRoles();
+    await this.rebuildCasbinRulesFromPrisma();
   }
 
   getEnforcer(): Enforcer {

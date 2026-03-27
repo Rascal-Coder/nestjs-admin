@@ -54,6 +54,8 @@ export const ModelName = {
   User: 'User',
   Role: 'Role',
   Permission: 'Permission',
+  Menu: 'Menu',
+  RoleMenu: 'RoleMenu',
   UserRole: 'UserRole',
   RolePermission: 'RolePermission',
   CasbinRule: 'CasbinRule'
@@ -80,7 +82,8 @@ export const UserScalarFieldEnum = {
   email: 'email',
   passwordHash: 'passwordHash',
   name: 'name',
-  isAdmin: 'isAdmin',
+  remark: 'remark',
+  roleCode: 'roleCode',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -93,6 +96,8 @@ export const RoleScalarFieldEnum = {
   id: 'id',
   code: 'code',
   name: 'name',
+  status: 'status',
+  remark: 'remark',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -109,6 +114,33 @@ export const PermissionScalarFieldEnum = {
 } as const
 
 export type PermissionScalarFieldEnum = (typeof PermissionScalarFieldEnum)[keyof typeof PermissionScalarFieldEnum]
+
+
+export const MenuScalarFieldEnum = {
+  id: 'id',
+  parentId: 'parentId',
+  name: 'name',
+  path: 'path',
+  activePath: 'activePath',
+  component: 'component',
+  permissionId: 'permissionId',
+  sortOrder: 'sortOrder',
+  menuType: 'menuType',
+  visible: 'visible',
+  icon: 'icon',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MenuScalarFieldEnum = (typeof MenuScalarFieldEnum)[keyof typeof MenuScalarFieldEnum]
+
+
+export const RoleMenuScalarFieldEnum = {
+  roleId: 'roleId',
+  menuId: 'menuId'
+} as const
+
+export type RoleMenuScalarFieldEnum = (typeof RoleMenuScalarFieldEnum)[keyof typeof RoleMenuScalarFieldEnum]
 
 
 export const UserRoleScalarFieldEnum = {
@@ -161,7 +193,9 @@ export const UserOrderByRelevanceFieldEnum = {
   id: 'id',
   email: 'email',
   passwordHash: 'passwordHash',
-  name: 'name'
+  name: 'name',
+  remark: 'remark',
+  roleCode: 'roleCode'
 } as const
 
 export type UserOrderByRelevanceFieldEnum = (typeof UserOrderByRelevanceFieldEnum)[keyof typeof UserOrderByRelevanceFieldEnum]
@@ -170,7 +204,8 @@ export type UserOrderByRelevanceFieldEnum = (typeof UserOrderByRelevanceFieldEnu
 export const RoleOrderByRelevanceFieldEnum = {
   id: 'id',
   code: 'code',
-  name: 'name'
+  name: 'name',
+  remark: 'remark'
 } as const
 
 export type RoleOrderByRelevanceFieldEnum = (typeof RoleOrderByRelevanceFieldEnum)[keyof typeof RoleOrderByRelevanceFieldEnum]
@@ -183,6 +218,28 @@ export const PermissionOrderByRelevanceFieldEnum = {
 } as const
 
 export type PermissionOrderByRelevanceFieldEnum = (typeof PermissionOrderByRelevanceFieldEnum)[keyof typeof PermissionOrderByRelevanceFieldEnum]
+
+
+export const MenuOrderByRelevanceFieldEnum = {
+  id: 'id',
+  parentId: 'parentId',
+  name: 'name',
+  path: 'path',
+  activePath: 'activePath',
+  component: 'component',
+  permissionId: 'permissionId',
+  icon: 'icon'
+} as const
+
+export type MenuOrderByRelevanceFieldEnum = (typeof MenuOrderByRelevanceFieldEnum)[keyof typeof MenuOrderByRelevanceFieldEnum]
+
+
+export const RoleMenuOrderByRelevanceFieldEnum = {
+  roleId: 'roleId',
+  menuId: 'menuId'
+} as const
+
+export type RoleMenuOrderByRelevanceFieldEnum = (typeof RoleMenuOrderByRelevanceFieldEnum)[keyof typeof RoleMenuOrderByRelevanceFieldEnum]
 
 
 export const UserRoleOrderByRelevanceFieldEnum = {

@@ -1,10 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
-  IsBoolean,
   IsEmail,
   IsEnum,
   IsOptional,
   IsString,
+  MaxLength,
   MinLength,
 } from "class-validator";
 import { UserStatus } from "@/generated/prisma/client";
@@ -25,10 +25,11 @@ export class CreateUserDto {
   @IsString()
   name?: string;
 
-  @ApiPropertyOptional({ description: "是否管理员标记，默认 false" })
+  @ApiPropertyOptional({ description: "备注（可选）" })
   @IsOptional()
-  @IsBoolean()
-  isAdmin?: boolean;
+  @IsString()
+  @MaxLength(2000)
+  remark?: string;
 
   @ApiPropertyOptional({ enum: UserStatus, description: "默认 ACTIVE" })
   @IsOptional()

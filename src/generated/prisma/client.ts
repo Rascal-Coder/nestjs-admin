@@ -55,6 +55,16 @@ export type Role = Prisma.RoleModel
  */
 export type Permission = Prisma.PermissionModel
 /**
+ * Model Menu
+ * 菜单树（前端勾选「菜单权限」）；叶子/按钮可挂 permissionId，保存角色时据此同步 role_permissions
+ */
+export type Menu = Prisma.MenuModel
+/**
+ * Model RoleMenu
+ * 
+ */
+export type RoleMenu = Prisma.RoleMenuModel
+/**
  * Model UserRole
  * 
  */

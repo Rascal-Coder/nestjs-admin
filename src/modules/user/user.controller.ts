@@ -16,10 +16,11 @@ import { ApiOkResponseWrapped } from "@/common/swagger/api-ok-wrapped.decorator"
 import type { JwtPayload } from "@/modules/auth/interfaces/jwt-payload.interface";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { QueryUserListDto } from "./dto/query-user-list.dto";
+import { ResetPasswordResultDto } from "./dto/reset-password-result.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { UserListDataDto } from "./dto/user-list-data.dto";
 import { UserProfileDto } from "./dto/user-profile.dto";
-import { UserService } from "./user.service";
+import { type ResetPasswordResult, UserService } from "./user.service";
 
 @ApiTags("users")
 @ApiBearerAccessToken()
@@ -60,12 +61,32 @@ export class UserController {
     return this.users.createByAdmin(dto);
   }
 
+  @Post(":id/reset-password")
+  @RequirePermission("user", "write")
+  @ApiOperation({
+    summary: "重置用户密码",
+    description:
+      "由后端随机生成新密码并写入数据库，不校验旧密码；明文仅在本次响应返回一次。",
+  })
+  @ApiOkResponseWrapped(ResetPasswordResultDto, UserProfileDto)
+  async resetPassword(@Param("id") id: string): Promise<ResetPasswordResult> {
+    return await this.users.resetPasswordById(id);
+  }
+
   @Patch(":id")
   @RequirePermission("user", "write")
-  @ApiOperation({ summary: "更新用户" })
+  @ApiOperation({
+    summary: "更新用户",
+    description:
+      "更新他人或自己。操作自己时仍可改昵称、邮箱、密码；不可将本人状态设为停用；不可删除本人（请用删除接口，已禁止）。",
+  })
   @ApiOkResponseWrapped(UserProfileDto)
-  update(@Param("id") id: string, @Body() dto: UpdateUserDto) {
-    return this.users.updateById(id, dto);
+  update(
+    @Param("id") id: string,
+    @Body() dto: UpdateUserDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.users.updateById(id, dto, user.sub);
   }
 
   @Delete(":id")
