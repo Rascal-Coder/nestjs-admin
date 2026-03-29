@@ -1,6 +1,18 @@
 import { Adapter, Helper, Model } from "casbin";
-import type { PrismaClient } from "@/generated/prisma/client";
-import type { CasbinRule } from "@/generated/prisma/client";
+import {
+  Prisma,
+  type CasbinRule,
+  type PrismaClient,
+} from "@/generated/prisma/client";
+
+/** 未执行 migrate / 表未建好时 Prisma 抛出 P2021，避免启动即崩溃 */
+export function isCasbinRuleTableMissingError(e: unknown): boolean {
+  return (
+    e instanceof Prisma.PrismaClientKnownRequestError &&
+    e.code === "P2021" &&
+    e.meta?.modelName === "CasbinRule"
+  );
+}
 
 /**
  * Casbin 持久化到 casbin_rule 表；与官方 ptype + v0..v5 行格式一致。
@@ -9,7 +21,15 @@ export class PrismaCasbinAdapter implements Adapter {
   constructor(private readonly prisma: PrismaClient) {}
 
   async loadPolicy(model: Model): Promise<void> {
-    const rows = await this.prisma.casbinRule.findMany();
+    let rows: CasbinRule[];
+    try {
+      rows = await this.prisma.casbinRule.findMany();
+    } catch (e) {
+      if (isCasbinRuleTableMissingError(e)) {
+        return;
+      }
+      throw e;
+    }
     for (const row of rows) {
       const line = this.rowToLine(row);
       Helper.loadPolicyLine(line, model);

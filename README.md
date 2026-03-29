@@ -36,16 +36,36 @@ docker compose up -d
 cp .env.example .env
 ```
 
-至少保证 `DATABASE_URL`、`REDIS_URL` 与 Compose 映射到本机的地址、端口一致（应用在**宿主机**跑时通常使用 `127.0.0.1`）。
+至少保证 `DATABASE_URL`、`REDIS_URL` 与 Compose 映射到本机的地址、端口一致（应用在**宿主机**跑时通常使用 `127.0.0.1`）。未配置 `.env` 时，Prisma CLI 会使用 [`prisma.config.ts`](./prisma.config.ts) 中的默认连接串（仅作占位，生产环境务必用 `.env` 覆盖）。
 
-### 4. 生成 Prisma Client 与数据库迁移
+### 4. 生成 Prisma Client、**迁库**与种子
 
-Prisma 7 下，修改 schema 后需**显式**生成 Client；迁移/推送后如需种子数据也需**显式**执行 seed：
+**应用启动不会自动建表。** `schema.prisma` 只描述「应该有哪些表」，真正在 MySQL 里创建/变更表结构的是下面这一步；跳过则接口会报 Prisma **P2021**（表不存在）等问题。
+
+| 步骤 | 作用 |
+| ---- | ---- |
+| `pnpm prisma:generate` | 根据 schema 生成 Prisma Client |
+| `pnpm prisma:migrate` 或 `pnpm prisma:push` | **在数据库中创建/同步表结构**（首次必须成功执行一次） |
+| `pnpm prisma:seed` | 在已有表的前提下写入种子数据（如超管），**不能代替迁库** |
+
+首次迁库（本机开发）：
 
 ```bash
 pnpm prisma:generate
 pnpm prisma:migrate
-# 或开发阶段可用：pnpm prisma:push
+```
+
+若命令行询问迁移名称，输入例如 `init` 后回车；或一次写完、避免交互：
+
+```bash
+pnpm exec prisma migrate dev --name init
+```
+
+无 `prisma/migrations`、仅有 schema 的新仓库：同样用上面命令生成**第一条**迁移并应用。临时不想维护迁移文件时，可用 `pnpm prisma:push` 把 schema 推到当前库（适合个人本地，团队协作更推荐 `migrate`）。
+
+迁库成功后再执行种子（按需）：
+
+```bash
 pnpm prisma:seed
 ```
 
@@ -63,6 +83,10 @@ pnpm start:dev
 pnpm build
 pnpm start:prod
 ```
+
+## 常见问题
+
+- **Prisma P2021（某张表不存在）或业务返回失败、日志里出现 `does not exist in the current database`**：多半是**还没迁库**或 **`DATABASE_URL` 指到了空库/错库**。按上文第 4 步执行 `pnpm prisma:migrate`（或 `pnpm prisma:push`），需要演示账号时再 `pnpm prisma:seed`。
 
 ## 访问地址
 
@@ -84,7 +108,7 @@ pnpm start:prod
 | `pnpm lint` | ESLint |
 | `pnpm format` | Prettier 格式化 `src/**/*.ts` |
 | `pnpm prisma:generate` | 生成 Prisma Client |
-| `pnpm prisma:migrate` | 开发迁移（`prisma migrate dev`） |
+| `pnpm prisma:migrate` | 开发迁移（`prisma migrate dev`）；**首次 clone / 新库必须先执行**，再在库里建表 |
 | `pnpm prisma:push` | 将 schema 推送到数据库（无迁移文件时使用） |
 | `pnpm prisma:seed` | 执行种子 `prisma/seed.ts` |
 
@@ -102,7 +126,4 @@ pnpm start:prod
 
 **请勿**将真实密钥提交到仓库；生产环境务必更换 JWT 与数据库口令。
 
-## 与前端协作
-
-若与 `next-shadcn-admin` 等前端联调，请约定：**API 前缀**、**CORS**、`Authorization: Bearer <token>` 格式及**业务响应码**（见 `AGENTS.md`），避免双端各维护一套枚举。
 

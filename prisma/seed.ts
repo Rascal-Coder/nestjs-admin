@@ -3,6 +3,7 @@
  * - roles / permissions / role_permissions：业务侧权限元数据
  * - users + user_roles：管理员账号与「用户↔角色」绑定（Casbin 启动时也会用 user_roles 补 g）
  * - casbin_rule：清空后写入 g（用户→角色）与 p（角色→资源/动作），与 RequirePermission 一致
+ * - 菜单：仅初始化「系统管理 → 菜单管理」骨架（固定 id 幂等 upsert）并挂给 super_admin，其余请在后台维护
  *
  * RBAC 约定：
  * - super_admin（超管）：用户管理 + 存储 + 角色管理；唯一拥有 user:read / user:write、role:read / role:write
@@ -26,6 +27,10 @@ const defaultUrl = "mysql://root:dev_root_password@127.0.0.1:3306/nestjs_admin";
 
 const ROLE_SUPER_ADMIN = "super_admin";
 const ROLE_ADMIN = "admin";
+
+/** 种子菜单固定主键（可重复执行 seed 而不重复插入） */
+const SEED_MENU_SYSTEM_ROOT_ID = "seed_menu_system_root";
+const SEED_MENU_MANAGEMENT_ID = "seed_menu_management";
 
 async function main() {
   const url = process.env.DATABASE_URL ?? defaultUrl;
@@ -173,152 +178,80 @@ async function main() {
     update: {},
   });
 
+  await prisma.menu.upsert({
+    where: { id: SEED_MENU_SYSTEM_ROOT_ID },
+    create: {
+      id: SEED_MENU_SYSTEM_ROOT_ID,
+      name: "系统管理",
+      path: "/system",
+      menuType: MenuType.DIRECTORY,
+      sortOrder: 0,
+      visible: true,
+    },
+    update: {
+      name: "系统管理",
+      path: "/system",
+      menuType: MenuType.DIRECTORY,
+      sortOrder: 0,
+      visible: true,
+    },
+  });
+  await prisma.menu.upsert({
+    where: { id: SEED_MENU_MANAGEMENT_ID },
+    create: {
+      id: SEED_MENU_MANAGEMENT_ID,
+      parentId: SEED_MENU_SYSTEM_ROOT_ID,
+      name: "菜单管理",
+      path: "/system/menu",
+      permissionId: permMenuRead.id,
+      menuType: MenuType.MENU,
+      sortOrder: 0,
+      visible: true,
+    },
+    update: {
+      parentId: SEED_MENU_SYSTEM_ROOT_ID,
+      name: "菜单管理",
+      path: "/system/menu",
+      permissionId: permMenuRead.id,
+      menuType: MenuType.MENU,
+      sortOrder: 0,
+      visible: true,
+    },
+  });
+  await prisma.roleMenu.upsert({
+    where: {
+      roleId_menuId: {
+        roleId: roleSuperAdmin.id,
+        menuId: SEED_MENU_SYSTEM_ROOT_ID,
+      },
+    },
+    create: { roleId: roleSuperAdmin.id, menuId: SEED_MENU_SYSTEM_ROOT_ID },
+    update: {},
+  });
+  await prisma.roleMenu.upsert({
+    where: {
+      roleId_menuId: {
+        roleId: roleSuperAdmin.id,
+        menuId: SEED_MENU_MANAGEMENT_ID,
+      },
+    },
+    create: { roleId: roleSuperAdmin.id, menuId: SEED_MENU_MANAGEMENT_ID },
+    update: {},
+  });
+
   // 若历史上曾把用户管理权限赋给 admin，种子重复执行时移除
   await prisma.rolePermission.deleteMany({
     where: {
       roleId: roleAdmin.id,
       permissionId: {
-        in: [permUserRead.id, permUserWrite.id, permRoleRead.id, permRoleWrite.id],
+        in: [
+          permUserRead.id,
+          permUserWrite.id,
+          permRoleRead.id,
+          permRoleWrite.id,
+        ],
       },
     },
-  });
-
-  /** 菜单树（RuoYi 风格）；节点可挂 permission，保存角色时由 API 汇总到 role_permissions */
-  const MENU_ROOT = "menu_root_system";
-  const MENU_USER = "menu_sys_user";
-  const MENU_USER_BTN = "menu_sys_user_write";
-  const MENU_ROLE = "menu_sys_role";
-  const MENU_ROLE_BTN = "menu_sys_role_write";
-  const MENU_STORAGE = "menu_sys_storage";
-  const MENU_MENU_PAGE = "menu_sys_menu";
-  const MENU_MENU_BTN = "menu_sys_menu_write";
-
-  await prisma.menu.upsert({
-    where: { id: MENU_ROOT },
-    create: {
-      id: MENU_ROOT,
-      parentId: null,
-      name: "系统管理",
-      menuType: MenuType.DIRECTORY,
-      sortOrder: 0,
-    },
-    update: {},
-  });
-  await prisma.menu.upsert({
-    where: { id: MENU_USER },
-    create: {
-      id: MENU_USER,
-      parentId: MENU_ROOT,
-      name: "用户管理",
-      path: "/system/user",
-      menuType: MenuType.MENU,
-      sortOrder: 1,
-      permissionId: permUserRead.id,
-    },
-    update: {},
-  });
-  await prisma.menu.upsert({
-    where: { id: MENU_USER_BTN },
-    create: {
-      id: MENU_USER_BTN,
-      parentId: MENU_USER,
-      name: "用户管理-写",
-      menuType: MenuType.BUTTON,
-      sortOrder: 1,
-      permissionId: permUserWrite.id,
-    },
-    update: {},
-  });
-  await prisma.menu.upsert({
-    where: { id: MENU_ROLE },
-    create: {
-      id: MENU_ROLE,
-      parentId: MENU_ROOT,
-      name: "角色管理",
-      path: "/system/role",
-      menuType: MenuType.MENU,
-      sortOrder: 2,
-      permissionId: permRoleRead.id,
-    },
-    update: {},
-  });
-  await prisma.menu.upsert({
-    where: { id: MENU_ROLE_BTN },
-    create: {
-      id: MENU_ROLE_BTN,
-      parentId: MENU_ROLE,
-      name: "角色管理-写",
-      menuType: MenuType.BUTTON,
-      sortOrder: 1,
-      permissionId: permRoleWrite.id,
-    },
-    update: {},
-  });
-  await prisma.menu.upsert({
-    where: { id: MENU_STORAGE },
-    create: {
-      id: MENU_STORAGE,
-      parentId: MENU_ROOT,
-      name: "存储管理",
-      path: "/system/storage",
-      menuType: MenuType.MENU,
-      sortOrder: 3,
-      permissionId: permStorageWrite.id,
-    },
-    update: {},
-  });
-  await prisma.menu.upsert({
-    where: { id: MENU_MENU_PAGE },
-    create: {
-      id: MENU_MENU_PAGE,
-      parentId: MENU_ROOT,
-      name: "菜单管理",
-      path: "/system/menu",
-      menuType: MenuType.MENU,
-      sortOrder: 4,
-      permissionId: permMenuRead.id,
-    },
-    update: {},
-  });
-  await prisma.menu.upsert({
-    where: { id: MENU_MENU_BTN },
-    create: {
-      id: MENU_MENU_BTN,
-      parentId: MENU_MENU_PAGE,
-      name: "菜单管理-写",
-      menuType: MenuType.BUTTON,
-      sortOrder: 1,
-      permissionId: permMenuWrite.id,
-    },
-    update: {},
-  });
-
-  const superMenuIds = [
-    MENU_ROOT,
-    MENU_USER,
-    MENU_USER_BTN,
-    MENU_ROLE,
-    MENU_ROLE_BTN,
-    MENU_STORAGE,
-    MENU_MENU_PAGE,
-    MENU_MENU_BTN,
-  ];
-  const adminMenuIds = [MENU_ROOT, MENU_STORAGE];
-
-  await prisma.roleMenu.deleteMany({
-    where: { roleId: { in: [roleSuperAdmin.id, roleAdmin.id] } },
-  });
-  await prisma.roleMenu.createMany({
-    data: superMenuIds.map((menuId) => ({
-      roleId: roleSuperAdmin.id,
-      menuId,
-    })),
-  });
-  await prisma.roleMenu.createMany({
-    data: adminMenuIds.map((menuId) => ({
-      roleId: roleAdmin.id,
-      menuId,
-    })),
   });
 
   const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@example.com";

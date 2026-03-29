@@ -2,7 +2,10 @@ import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { newEnforcer, Enforcer } from "casbin";
 import { PrismaService } from "@/prisma/prisma.service";
-import { PrismaCasbinAdapter } from "@/casbin/prisma-casbin-adapter";
+import {
+  isCasbinRuleTableMissingError,
+  PrismaCasbinAdapter,
+} from "@/casbin/prisma-casbin-adapter";
 
 /** 将 permission.code（如 user:read）拆为 Casbin 的 obj、act */
 export function splitPermissionCode(code: string): {
@@ -31,7 +34,17 @@ export class CasbinService implements OnModuleInit {
     const modelPath = this.config.getOrThrow<string>("casbin.modelPath");
     const adapter = new PrismaCasbinAdapter(this.prisma);
     this.enforcer = await newEnforcer(modelPath, adapter);
-    await this.rebuildCasbinRulesFromPrisma();
+    try {
+      await this.rebuildCasbinRulesFromPrisma();
+    } catch (e) {
+      if (isCasbinRuleTableMissingError(e)) {
+        this.logger.warn(
+          "数据库缺少 casbin_rule 表，已跳过 Casbin 策略同步；权限校验将以空策略为准。请执行 `pnpm prisma migrate deploy` 或 `pnpm prisma db push` 后再重启。",
+        );
+        return;
+      }
+      throw e;
+    }
     this.logger.log("Casbin 策略已从数据库加载（p/g 已与 Prisma 对齐）");
   }
 

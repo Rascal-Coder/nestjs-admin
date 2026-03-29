@@ -50,12 +50,6 @@ export class UpdateMenuDto {
   @ApiPropertyOptional({ nullable: true })
   @IsOptional()
   @IsString()
-  @MaxLength(200)
-  component?: string | null;
-
-  @ApiPropertyOptional({ nullable: true })
-  @IsOptional()
-  @IsString()
   @MinLength(1)
   permissionId?: string | null;
 

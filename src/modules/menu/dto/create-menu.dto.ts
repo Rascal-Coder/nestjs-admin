@@ -49,12 +49,6 @@ export class CreateMenuDto {
   @MaxLength(200)
   activePath?: string | null;
 
-  @ApiPropertyOptional({ nullable: true, description: "前端组件路径等" })
-  @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  component?: string | null;
-
   @ApiPropertyOptional({
     nullable: true,
     description: "绑定的权限 id（目录可为空）",

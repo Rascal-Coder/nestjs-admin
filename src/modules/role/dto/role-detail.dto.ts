@@ -27,7 +27,8 @@ export class RoleDetailDto {
 
   @ApiProperty({
     type: [PermissionItemDto],
-    description: "当前角色在 Casbin 中的权限（由菜单勾选汇总，或由 PATCH permissions 直接分配）",
+    description:
+      "当前角色在 Casbin 中的权限（由菜单勾选汇总，或由 PATCH permissions 直接分配）",
   })
   permissions!: PermissionItemDto[];
 

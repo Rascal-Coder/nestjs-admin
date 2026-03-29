@@ -8,18 +8,20 @@
 
 ## 目录
 
-- [技术栈](#技术栈)
-- [包管理与 Prisma 7](#包管理与-prisma-7)
-- [Docker Compose](#docker-compose)
-- [分层与模块](#分层与模块)
-- [HTTP 与拦截](#http-与拦截)
-- [业务码约定](#业务码约定)
-- [鉴权与权限 RBAC](#鉴权与权限-rbac)
-- [数据与缓存](#数据与缓存)
-- [文件存储 MinIO](#文件存储-minio)
-- [环境变量](#环境变量)
-- [代码风格](#代码风格)
-- [Agent 检查清单](#agent-检查清单)
+- [AGENTS.md](#agentsmd)
+  - [目录](#目录)
+  - [技术栈](#技术栈)
+  - [包管理与 Prisma 7](#包管理与-prisma-7)
+  - [Docker Compose](#docker-compose)
+  - [分层与模块](#分层与模块)
+  - [HTTP 与拦截](#http-与拦截)
+  - [业务码约定](#业务码约定)
+  - [鉴权与权限 RBAC](#鉴权与权限-rbac)
+  - [数据与缓存](#数据与缓存)
+  - [文件存储 MinIO](#文件存储-minio)
+  - [环境变量](#环境变量)
+  - [代码风格](#代码风格)
+  - [Agent 检查清单](#agent-检查清单)
 
 ---
 
@@ -97,7 +99,10 @@ src/
 └── casbin/                 # model.conf、adapter（如 prisma-adapter）
 ```
 
-原则：**Thin Controller、Service 承载业务规则、Repository/Prisma 只做数据访问**；跨模块依赖通过接口或领域事件，避免循环引用。
+分层与模块解耦：
+
+- **分层**：Controller 宜弱（校验、鉴权、编排）；业务规则放在 Service；数据库读写只经 Repository / Prisma，不在 Controller 里堆判断。
+- **跨模块**：优先依赖 **抽象接口**（依赖倒置，调用方不绑具体实现），或用 **领域事件**：把协作表述为「某业务事实已发生」（例：用户已创建），由监听方自行处理，从而少用「A 直接注入 B、B 又依赖 A」式的双向引用，避免循环依赖。
 
 ---
 
@@ -213,5 +218,3 @@ src/
 7. 新增或变更 **MySQL / Redis / MinIO** 等依赖时，是否同步更新 **`docker-compose.yml`（或 `compose.yaml`）**、`.env.example` 与 `README` 启动说明？
 
 ---
-
-*与前端 `next-shadcn-admin` 协作时：约定 API 前缀、CORS、`Authorization` 头格式及业务码表，避免双端各写一套枚举。*

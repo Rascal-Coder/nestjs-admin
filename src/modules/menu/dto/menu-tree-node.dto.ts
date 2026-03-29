@@ -22,9 +22,6 @@ export class MenuTreeNodeDto {
   })
   activePath!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
-  component!: string | null;
-
   @ApiProperty({ enum: MenuType })
   menuType!: MenuType;
 
@@ -39,7 +36,8 @@ export class MenuTreeNodeDto {
 
   @ApiPropertyOptional({
     nullable: true,
-    description: "节点绑定的权限（目录可为空；保存角色时汇总所有勾选节点上的 permission）",
+    description:
+      "节点绑定的权限（目录可为空；保存角色时汇总所有勾选节点上的 permission）",
   })
   permission!: PermissionItemDto | null;
 

@@ -22,9 +22,6 @@ export class MenuDetailDto {
   })
   activePath!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
-  component!: string | null;
-
   @ApiProperty({ enum: MenuType })
   menuType!: MenuType;
 

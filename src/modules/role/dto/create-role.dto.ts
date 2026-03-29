@@ -43,7 +43,8 @@ export class CreateRoleDto {
 
   @ApiPropertyOptional({
     type: [String],
-    description: "菜单权限（菜单 id 全量）；保存后按节点 permission 汇总到 Casbin",
+    description:
+      "菜单权限（菜单 id 全量）；保存后按节点 permission 汇总到 Casbin",
   })
   @IsOptional()
   @IsArray()

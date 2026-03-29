@@ -82,7 +82,6 @@ model Menu {
   path         String?
   /// 激活路径（高亮当前菜单，可与路由地址不同，如子页仍选中父级菜单）
   activePath   String?     @map("active_path") @db.VarChar(200)
-  component    String?
   permissionId String?     @map("permission_id")
   permission   Permission? @relation(fields: [permissionId], references: [id], onDelete: SetNull)
   sortOrder    Int         @default(0) @map("sort_order")

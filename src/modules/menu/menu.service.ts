@@ -28,7 +28,6 @@ export type MenuTreeRow = {
   name: string;
   path: string | null;
   activePath: string | null;
-  component: string | null;
   permissionId: string | null;
   sortOrder: number;
   menuType: MenuTypeLiteral;
@@ -46,7 +45,6 @@ export type MenuTreeNode = {
   name: string;
   path: string | null;
   activePath: string | null;
-  component: string | null;
   menuType: MenuTypeLiteral;
   sortOrder: number;
   visible: boolean;
@@ -114,7 +112,6 @@ export class MenuService {
         name: dto.name,
         path: dto.path ?? null,
         activePath: dto.activePath ?? null,
-        component: dto.component ?? null,
         permissionId: dto.permissionId ?? null,
         sortOrder: dto.sortOrder ?? 0,
         menuType: dto.menuType ?? MenuType.MENU,
@@ -158,9 +155,6 @@ export class MenuService {
     }
     if (dto.activePath !== undefined) {
       data.activePath = dto.activePath;
-    }
-    if (dto.component !== undefined) {
-      data.component = dto.component;
     }
     if (dto.permissionId !== undefined) {
       data.permissionId = dto.permissionId;
@@ -206,7 +200,6 @@ export class MenuService {
       name: row.name,
       path: row.path,
       activePath: row.activePath,
-      component: row.component,
       menuType: row.menuType,
       sortOrder: row.sortOrder,
       visible: row.visible,
@@ -305,7 +298,6 @@ export class MenuService {
       name: m.name,
       path: m.path,
       activePath: m.activePath,
-      component: m.component,
       menuType: m.menuType,
       sortOrder: m.sortOrder,
       visible: m.visible,

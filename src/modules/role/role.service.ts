@@ -227,9 +227,7 @@ export class RoleService {
     });
     const permIds = [
       ...new Set(
-        menus
-          .map((m) => m.permissionId)
-          .filter((x): x is string => Boolean(x)),
+        menus.map((m) => m.permissionId).filter((x): x is string => Boolean(x)),
       ),
     ];
     if (permIds.length === 0) {
