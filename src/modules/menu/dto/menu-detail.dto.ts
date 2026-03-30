@@ -22,6 +22,12 @@ export class MenuDetailDto {
   })
   activePath!: string | null;
 
+  @ApiPropertyOptional({
+    nullable: true,
+    description: "目录默认重定向路径",
+  })
+  redirect!: string | null;
+
   @ApiProperty({ enum: MenuType })
   menuType!: MenuType;
 

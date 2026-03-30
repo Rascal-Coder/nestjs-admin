@@ -51,6 +51,15 @@ export class CreateMenuDto {
 
   @ApiPropertyOptional({
     nullable: true,
+    description: "目录默认重定向路径（如进入目录时跳转到默认子页）",
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  redirect?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
     description: "绑定的权限 id（目录可为空）",
   })
   @IsOptional()

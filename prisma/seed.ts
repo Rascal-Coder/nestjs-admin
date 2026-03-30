@@ -3,7 +3,7 @@
  * - roles / permissions / role_permissions：业务侧权限元数据
  * - users + user_roles：管理员账号与「用户↔角色」绑定（Casbin 启动时也会用 user_roles 补 g）
  * - casbin_rule：清空后写入 g（用户→角色）与 p（角色→资源/动作），与 RequirePermission 一致
- * - 菜单：仅初始化「系统管理 → 菜单管理」骨架（固定 id 幂等 upsert）并挂给 super_admin，其余请在后台维护
+ * - 菜单：初始化「概览 /dashboard/overview」与「系统管理 → 菜单管理」骨架（固定 id 幂等 upsert）并挂给 super_admin，其余请在后台维护
  *
  * RBAC 约定：
  * - super_admin（超管）：用户管理 + 存储 + 角色管理；唯一拥有 user:read / user:write、role:read / role:write
@@ -29,6 +29,7 @@ const ROLE_SUPER_ADMIN = "super_admin";
 const ROLE_ADMIN = "admin";
 
 /** 种子菜单固定主键（可重复执行 seed 而不重复插入） */
+const SEED_MENU_OVERVIEW_ID = "seed_menu_overview";
 const SEED_MENU_SYSTEM_ROOT_ID = "seed_menu_system_root";
 const SEED_MENU_MANAGEMENT_ID = "seed_menu_management";
 
@@ -179,21 +180,45 @@ async function main() {
   });
 
   await prisma.menu.upsert({
+    where: { id: SEED_MENU_OVERVIEW_ID },
+    create: {
+      id: SEED_MENU_OVERVIEW_ID,
+      name: "概览",
+      path: "/dashboard/overview",
+      menuType: MenuType.MENU,
+      sortOrder: 0,
+      visible: true,
+      icon: "HomeOutlined",
+    },
+    update: {
+      name: "概览",
+      path: "/dashboard/overview",
+      menuType: MenuType.MENU,
+      sortOrder: 0,
+      visible: true,
+      icon: "HomeOutlined",
+    },
+  });
+  await prisma.menu.upsert({
     where: { id: SEED_MENU_SYSTEM_ROOT_ID },
     create: {
       id: SEED_MENU_SYSTEM_ROOT_ID,
       name: "系统管理",
-      path: "/system",
+      path: "/dashboard/system",
       menuType: MenuType.DIRECTORY,
-      sortOrder: 0,
+      sortOrder: 1,
       visible: true,
+      icon: "DashboardOutlined",
+      redirect: "/dashboard/system/menu",
     },
     update: {
       name: "系统管理",
-      path: "/system",
+      path: "/dashboard/system",
       menuType: MenuType.DIRECTORY,
-      sortOrder: 0,
+      sortOrder: 1,
       visible: true,
+      icon: "DashboardOutlined",
+      redirect: "/dashboard/system/menu",
     },
   });
   await prisma.menu.upsert({
@@ -202,21 +227,33 @@ async function main() {
       id: SEED_MENU_MANAGEMENT_ID,
       parentId: SEED_MENU_SYSTEM_ROOT_ID,
       name: "菜单管理",
-      path: "/system/menu",
+      path: "/dashboard/system/menu",
       permissionId: permMenuRead.id,
       menuType: MenuType.MENU,
       sortOrder: 0,
       visible: true,
+      icon: "MenuOutlined",
     },
     update: {
       parentId: SEED_MENU_SYSTEM_ROOT_ID,
       name: "菜单管理",
-      path: "/system/menu",
+      path: "/dashboard/system/menu",
       permissionId: permMenuRead.id,
       menuType: MenuType.MENU,
       sortOrder: 0,
       visible: true,
+      icon: "MenuOutlined",
     },
+  });
+  await prisma.roleMenu.upsert({
+    where: {
+      roleId_menuId: {
+        roleId: roleSuperAdmin.id,
+        menuId: SEED_MENU_OVERVIEW_ID,
+      },
+    },
+    create: { roleId: roleSuperAdmin.id, menuId: SEED_MENU_OVERVIEW_ID },
+    update: {},
   });
   await prisma.roleMenu.upsert({
     where: {

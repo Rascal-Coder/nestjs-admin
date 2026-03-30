@@ -47,6 +47,15 @@ export class UpdateMenuDto {
   @MaxLength(200)
   activePath?: string | null;
 
+  @ApiPropertyOptional({
+    nullable: true,
+    description: "目录默认重定向路径",
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  redirect?: string | null;
+
   @ApiPropertyOptional({ nullable: true })
   @IsOptional()
   @IsString()
